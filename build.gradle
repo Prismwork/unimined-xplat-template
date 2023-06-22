@@ -1,0 +1,240 @@
+plugins {
+	id 'java'
+	alias libs.plugins.unimined
+}
+
+group = project.mod_group
+base.archivesName = project.archives_base_name
+version = "${project.mod_version}+${libs.versions.minecraft.get()}"
+
+unimined.useGlobalCache = false
+
+sourceCompatibility = JavaVersion.VERSION_17
+targetCompatibility = JavaVersion.VERSION_17
+
+tasks.register("fabricJar", Jar) {
+	from sourceSets.fabric.output, sourceSets.main.output
+
+	archiveClassifier = "fabric"
+}
+
+tasks.register("forgeJar", Jar) {
+	from sourceSets.forge.output, sourceSets.main.output
+
+	archiveClassifier = "forge"
+}
+
+repositories {
+	mavenCentral()
+	maven {
+		name = "Sponge"
+		url = "https://repo.spongepowered.org/maven"
+	}
+	maven {
+		name = "TerraformersMC"
+		url = "https://maven.terraformersmc.com/"
+	}
+}
+
+sourceSets {
+	main {}
+	forge {}
+	fabric {}
+}
+
+configurations {
+	mainImplementation
+	implementation {
+		extendsFrom forgeImplementation
+		extendsFrom fabricImplementation
+	}
+
+	mainCompileOnly {
+		canBeResolved = true
+	}
+	fabricCompileOnly {
+		canBeResolved = true
+	}
+	forgeCompileOnly {
+		canBeResolved = true
+	}
+	compileOnly {
+		extendsFrom fabricCompileOnly
+		extendsFrom forgeCompileOnly
+	}
+
+	mainModCompileOnly {
+		canBeResolved = true
+	}
+	fabricModCompileOnly {
+		canBeResolved = true
+	}
+	forgeModCompileOnly {
+		canBeResolved = true
+	}
+	modCompileOnly {
+		extendsFrom fabricModCompileOnly
+		extendsFrom forgeModCompileOnly
+	}
+
+	mainRuntimeOnly {
+		canBeResolved = true
+	}
+	fabricRuntimeOnly {
+		canBeResolved = true
+	}
+	forgeRuntimeOnly {
+		canBeResolved = true
+	}
+	runtimeOnly {
+		extendsFrom fabricRuntimeOnly
+		extendsFrom forgeRuntimeOnly
+	}
+
+	mainModRuntimeOnly {
+		canBeResolved = true
+	}
+	fabricModRuntimeOnly {
+		canBeResolved = true
+	}
+	forgeModRuntimeOnly {
+		canBeResolved = true
+	}
+	modRuntimeOnly {
+		extendsFrom fabricModRuntimeOnly
+		extendsFrom forgeModRuntimeOnly
+	}
+}
+
+sourceSets.main {
+	compileClasspath += configurations.mainImplementation
+	compileClasspath += configurations.mainCompileOnly
+	compileClasspath += configurations.mainModCompileOnly
+
+	runtimeClasspath += configurations.mainImplementation
+	runtimeClasspath += configurations.mainRuntimeOnly
+	runtimeClasspath += configurations.mainModRuntimeOnly
+}
+
+sourceSets.forge {
+	compileClasspath += sourceSets.main.output
+	compileClasspath += configurations.forgeCompileOnly
+	compileClasspath += configurations.forgeModCompileOnly
+
+	runtimeClasspath += sourceSets.main.output
+	runtimeClasspath += configurations.forgeRuntimeOnly
+	runtimeClasspath += configurations.forgeModRuntimeOnly
+}
+
+sourceSets.fabric {
+	compileClasspath += sourceSets.main.output
+	compileClasspath += configurations.fabricCompileOnly
+	compileClasspath += configurations.fabricModCompileOnly
+
+	runtimeClasspath += sourceSets.main.output
+	runtimeClasspath += configurations.fabricRuntimeOnly
+	runtimeClasspath += configurations.fabricModRuntimeOnly
+}
+
+unimined.minecraft {
+	version libs.versions.minecraft.get()
+
+	mappings {
+		intermediary()
+		yarn(libs.versions.yarn.get())
+
+		devFallbackNamespace "intermediary"
+	}
+
+	defaultRemapJar = false
+
+	mods {
+		remap([configurations.mainModCompileOnly, configurations.mainModRuntimeOnly])
+	}
+}
+
+unimined.minecraft(sourceSets.fabric) {
+	version libs.versions.minecraft.get()
+
+	mappings {
+		yarn(libs.versions.yarn.get())
+	}
+
+	fabric {
+		loader libs.versions.fabric.loader.get()
+	}
+
+	mods {
+		remap([configurations.fabricModCompileOnly, configurations.fabricModRuntimeOnly])
+	}
+}
+
+unimined.minecraft(sourceSets.forge) {
+	version libs.versions.minecraft.get()
+
+	mappings {
+		intermediary()
+		yarn(libs.versions.yarn.get())
+
+		devFallbackNamespace "intermediary"
+	}
+
+	forge {
+		forge libs.versions.forge.get()
+		mixinConfig "modid.mixins.json"
+	}
+
+	mods {
+		remap([configurations.forgeModCompileOnly, configurations.forgeModRuntimeOnly])
+	}
+}
+
+dependencies {
+	// main
+	mainImplementation "org.spongepowered:mixin:0.8.5-SNAPSHOT" // required for common
+	modImplementation variantOf(libs.emi.xplat) { classifier 'api' }
+
+    // forge
+	forgeModCompileOnly variantOf(libs.emi.forge) { classifier 'api' }
+	forgeModRuntimeOnly libs.emi.forge
+
+    // fabric
+	fabricModImplementation libs.fabric.api
+	fabricModCompileOnly variantOf(libs.emi.fabric) { classifier 'api' }
+	fabricModRuntimeOnly libs.emi.fabric
+}
+
+processFabricResources {
+	inputs.property "version", project.version
+
+	filesMatching("fabric.mod.json") {
+		expand "version": project.version
+	}
+}
+
+processForgeResources {
+	inputs.property "version", project.version
+
+	filesMatching("META-INF/mods.toml") {
+		expand "version": project.version
+	}
+}
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = 'UTF-8'
+	it.options.release = 17
+}
+
+tasks.withType(Jar).configureEach {
+	from('LICENSE.md') {
+		rename { "${it}_${base.archivesName.get()}.md" }
+	}
+}
+
+java {
+	withSourcesJar()
+
+	// If this mod is going to be a library, then it should also generate Javadocs in order to aid with development.
+	// Uncomment this line to generate them.
+	// withJavadocJar()
+}

@@ -1,0 +1,21 @@
+[versions]
+minecraft = "1.20.1"
+yarn = "1"
+fabric_loader = "0.14.20"
+forge = "47.0.14"
+
+fabric_api = "0.84.0+1.20.1"
+
+emi = "1.0.5+1.20.1"
+
+[libraries]
+fabric_api = { module = "net.fabricmc.fabric-api:fabric-api", version.ref = "fabric_api" }
+
+emi_xplat = { module = "dev.emi:emi-xplat-intermediary", version.ref = "emi" }
+emi_forge = { module = "dev.emi:emi-forge", version.ref = "emi" }
+emi_fabric = { module = "dev.emi:emi-fabric", version.ref = "emi" }
+
+[bundles]
+
+[plugins]
+unimined = { id = "xyz.wagyourtail.unimined", version = "1.0.0-SNAPSHOT" }
